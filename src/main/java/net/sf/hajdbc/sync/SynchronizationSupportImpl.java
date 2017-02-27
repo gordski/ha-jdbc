@@ -281,7 +281,7 @@ public class SynchronizationSupportImpl<Z, D extends Database<Z>> implements Syn
 						
 						if (!columns.isEmpty())
 						{
-							String selectSQL = MessageFormat.format("SELECT max({0}) FROM {1}", Strings.join(columns, "), max("), table.getName()); //$NON-NLS-1$ //$NON-NLS-2$
+							String selectSQL = MessageFormat.format("SELECT max({0}) FROM {1}", Strings.join(columns, "), max("), table.getName().getDMLName()); //$NON-NLS-1$ //$NON-NLS-2$
 							
 							this.logger.log(Level.DEBUG, selectSQL);
 							
