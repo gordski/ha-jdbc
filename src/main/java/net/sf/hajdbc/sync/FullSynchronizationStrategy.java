@@ -17,11 +17,7 @@
  */
 package net.sf.hajdbc.sync;
 
-import java.sql.Connection;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.sql.SQLException;
-import java.sql.Statement;
+import java.sql.*;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.concurrent.Callable;
@@ -168,7 +164,18 @@ public class FullSynchronizationStrategy implements SynchronizationStrategy, Tab
 						}
 						else
 						{
-							insertStatement.setObject(index, object, type);
+							if(type == Types.BLOB)
+							{
+								insertStatement.setBlob(index, ((Blob)object).getBinaryStream());
+							}
+							else if(type == Types.CLOB)
+							{
+								insertStatement.setClob(index, ((Clob)object).getCharacterStream());
+							}
+							else
+							{
+								insertStatement.setObject(index, object, type);
+							}
 						}
 					}
 					
