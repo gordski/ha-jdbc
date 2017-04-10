@@ -21,11 +21,13 @@ import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.DriverPropertyInfo;
 import java.sql.SQLException;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.Properties;
 import java.util.SortedMap;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Function;
 import java.util.regex.Pattern;
 
 import net.sf.hajdbc.AbstractDriver;
@@ -56,7 +58,7 @@ public final class Driver extends AbstractDriver
 
 	static volatile TimePeriod timeout = new TimePeriod(10, TimeUnit.SECONDS);
 	static volatile DatabaseClusterFactory<java.sql.Driver, DriverDatabase> factory = new DatabaseClusterFactoryImpl<java.sql.Driver, DriverDatabase>();
-	
+
 	static final Map<String, DatabaseClusterConfigurationFactory<java.sql.Driver, DriverDatabase>> configurationFactories = new ConcurrentHashMap<String, DatabaseClusterConfigurationFactory<java.sql.Driver, DriverDatabase>>();
 	private static final Registry.Factory<String, DatabaseCluster<java.sql.Driver, DriverDatabase>, Properties, SQLException> registryFactory = new Registry.Factory<String, DatabaseCluster<java.sql.Driver, DriverDatabase>, Properties, SQLException>()
 	{
@@ -82,6 +84,8 @@ public final class Driver extends AbstractDriver
 	};
 	private static final Registry<String, DatabaseCluster<java.sql.Driver, DriverDatabase>, Properties, SQLException> registry = new LifecycleRegistry<String, DatabaseCluster<java.sql.Driver, DriverDatabase>, Properties, SQLException>(registryFactory, new MapRegistryStoreFactory<String>(), ExceptionType.SQL.<SQLException>getExceptionFactory());
 
+	private static final Map<String, DriverProxyFactory> proxies = new HashMap<String, DriverProxyFactory>();
+
 	static
 	{
 		try
@@ -96,6 +100,11 @@ public final class Driver extends AbstractDriver
 	
 	public static void stop(String id) throws SQLException
 	{
+		DriverProxyFactory factory = proxies.get(id);
+		if(factory != null)
+		{
+			factory.close();
+		}
 		registry.remove(id);
 	}
 
@@ -137,7 +146,9 @@ public final class Driver extends AbstractDriver
 		if (id == null) return null;
 		
 		DatabaseCluster<java.sql.Driver, DriverDatabase> cluster = registry.get(id, properties);
-		DriverProxyFactory driverFactory = new DriverProxyFactory(cluster);
+
+		DriverProxyFactory driverFactory = proxies.computeIfAbsent(id, s -> new DriverProxyFactory(cluster));
+
 		java.sql.Driver driver = driverFactory.createProxy();
 		TransactionContext<java.sql.Driver, DriverDatabase> context = new LocalTransactionContext<java.sql.Driver, DriverDatabase>(cluster);
 
@@ -166,9 +177,9 @@ public final class Driver extends AbstractDriver
 		// JDBC spec compliance
 		if (id == null) return null;
 		
-		DatabaseCluster<java.sql.Driver, DriverDatabase> cluster = registry.get(id, properties);
-		DriverProxyFactory map = new DriverProxyFactory(cluster);
-		
+		final DatabaseCluster<java.sql.Driver, DriverDatabase> cluster = registry.get(id, properties);
+		DriverProxyFactory map = proxies.computeIfAbsent(id, s -> new DriverProxyFactory(cluster));
+
 		DriverInvoker<DriverPropertyInfo[]> invoker = new DriverInvoker<DriverPropertyInfo[]>()
 		{
 			@Override
