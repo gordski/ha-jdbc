@@ -39,6 +39,12 @@
 	<properties>
 		<github.site.repositoryName>ha-jdbc.github.com</github.site.repositoryName>
 		<github.site.repositoryOwner>ha-jdbc</github.site.repositoryOwner>
+		<targetJdk>1.8</targetJdk>
+		<jdk.min.version>1.8</jdk.min.version>
+		<maven.compiler.argument.source>1.8</maven.compiler.argument.source>
+		<maven.compiler.argument.target>1.8</maven.compiler.argument.target>
+		<maven.compiler.source>1.8</maven.compiler.source>
+		<maven.compiler.target>1.8</maven.compiler.target>
 	</properties>
 
 	<repositories>
